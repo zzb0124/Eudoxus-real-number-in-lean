@@ -28,124 +28,100 @@ instance : add_group G :=
  rw h, simp, refl end}
 
 def S : add_subgroup G :=  
-{carrier := {f : ℤ → ℤ | almost_homomorphism f},
+{ carrier := {f : ℤ → ℤ | almost_homomorphism f},
   zero_mem' := begin use 5, intros p q, tidy end,
   add_mem' := 
   begin 
-   intros a b ha hb, 
-   rcases ha with ⟨C, hC⟩, 
-   rcases hb with ⟨D, hD⟩, 
-   use C + D,
-   intros p q,
-   specialize hC p q,
-   specialize hD p q,
-   rw abs_lt at *,
-   cases hC, cases hD,
-   rw df at *,
-   tidy,
-   have h : ∀ (f g : G)(z : ℤ), (f + g) z = f z + g z, 
-    tidy,
-   rw h at *,
-   rw h at *,
-   rw h at *,
-   linarith,
-   have h : ∀ (f g : G)(z : ℤ), (f + g) z = f z + g z, 
-    tidy,
-   rw h at *,
-   rw h at *,
-   rw h at *,
-   linarith,
-   end,
+    intros a b ha hb, 
+    rcases ha with ⟨C, hC⟩, 
+    rcases hb with ⟨D, hD⟩, 
+    use C + D,
+    intros p q,
+    specialize hC p q,
+    specialize hD p q,
+    have h : ∀ (f g : G)(z : ℤ), (f + g) z = f z + g z, 
+      tidy,
+    rw abs_lt at *,
+    cases hC, cases hD,
+    simp [df] at *,
+    fsplit,
+    simp [h] at *,
+    linarith,
+    simp [h] at *,
+    linarith,
+  end,
   neg_mem' := 
   begin
-  intros f hf,
-  rcases hf with ⟨C, hC⟩,
-  use C,
-  intros p q,
-  specialize hC p q,
-  rw df at *,
-  tidy,
-  have h : ∀ z : ℤ, (- f) z = - f z,
-   tidy,
-  rw h at ⊢,
-  rw abs_lt at *,
-  cases hC,
-  split,
-   rw h at *,
-   rw h at *,
-   linarith,
-   rw h at *,
-   rw h at *,
-   linarith
+    intros f hf,
+    rcases hf with ⟨C, hC⟩,
+    use C,
+    intros p q,
+    specialize hC p q,
+    rw df at *,
+    tidy,
+    have h : ∀ z : ℤ, (- f) z = - f z,
+     tidy,
+    rw h at ⊢,
+    rw abs_lt at *,
+    cases hC,
+    split,
+      simp [h] at *,
+      linarith,
+      simp [h] at *,
+      linarith
   end}
 
 def B : add_subgroup S := 
- { carrier := {f : S | ∃ (B : ℤ), ∀ (x : ℤ), abs(f.1 x) ≤ B},
-   zero_mem' := begin use 5, intro x, tidy end,
-   add_mem' := 
-   begin 
-   intros f g, 
-   intros hf hg,
-   rcases hf with ⟨B, hB⟩, 
-   rcases hg with ⟨C, hC⟩,
-   use B + C,
-   intro x,
-   specialize hC x,
-   specialize hB x,
-   have h1 : ∀ (f g : S) (x : ℤ), (f + g).1 x = f.1 x + g.1 x, 
-    intros f g x,
-    refl,
-   rw h1, 
-   rw abs_le at *,
-   cases hC, 
-   cases hB,
-   split,
-    simp only [neg_add_rev],
-    linarith,
-    linarith,
-   end,
-   neg_mem' := 
-   begin 
-   intros f hf,
-   rcases hf with ⟨B, hB⟩,
-   use B,
-   intro x,
-   specialize hB x,
-   have h : ∀ (f : S)(x : ℤ), (- f).1 x = - f.1 x,
-    intros f x,
-    refl,
-   rw h,
-   rw abs_neg, 
-   exact hB 
-   end}
+ {carrier := {f : S | ∃ (B : ℤ), ∀ (x : ℤ), abs(f.1 x) ≤ B},
+  zero_mem' := begin use 5, intro x, tidy end,
+  add_mem' := 
+  begin 
+    intros f g, 
+    intros hf hg,
+    rcases hf with ⟨B, hB⟩, 
+    rcases hg with ⟨C, hC⟩,
+    use B + C,
+    intro x,
+    specialize hC x,
+    specialize hB x,
+    have h1 : ∀ (f g : S) (x : ℤ), (f + g).1 x = f.1 x + g.1 x, 
+      intros f g x,
+      refl,
+    rw h1, 
+    rw abs_le at *,
+    cases hC, 
+    cases hB,
+    split,
+      simp only [neg_add_rev],
+      linarith,
+      linarith,
+  end,
+  neg_mem' := 
+  begin 
+    intros f hf,
+    rcases hf with ⟨B, hB⟩,
+    use B,
+    intro x,
+    specialize hB x,
+    have h : ∀ (f : S)(x : ℤ), (- f).1 x = - f.1 x,
+      intros f x,
+      refl,
+    rw h,
+    rw abs_neg, 
+    exact hB 
+  end}
 
-/-instance subgroup_B : is_add_subgroup B.carrier :=
-begin 
- refine is_add_subgroup.of_sub B.carrier _ _,
- {use 5,
- intro x,
- simp},
- {intros f g, 
- intros hf hg,
- rcases hf with ⟨B, hB⟩, 
- rcases hg with ⟨C, hC⟩,
- use B + C,
- intro x,
- specialize hB x,
- specialize hC x,
- rw abs_lt at *,
- have h : ∀ (f g : S)(x : ℤ), (f - g).1 x = f.1 x - g.1 x,
-  intros f g x,
-  refl,
- rw h,
- cases hB,
- cases hC,
- split,
-  simp only [int.coe_nat_add, neg_add_rev],
-  linarith,
-  simp only [int.coe_nat_add, neg_add_rev],
-  linarith}
-end-/
+instance add_comm_G : add_comm_group G := 
+{ add_comm:= 
+  begin 
+    intros f g, 
+    tidy, 
+  have h:∀ (f g : G)(z : ℤ), (f + g) z = f z + g z, 
+    tidy, 
+  simp [h], 
+  exact add_comm (f x) (g x), 
+  end,
+  ..G.add_group}
 
 instance add_comm_G : add_comm_group G := 
 {add_comm:= 
@@ -159,20 +135,7 @@ instance add_comm_G : add_comm_group G :=
  exact add_comm (f x) (g x), 
  end,
   ..G.add_group}
-
-/-instance is_normal_subgroup_B : normal_add_subgroup B.carrier := 
-{normal := 
- begin
-  intros f hf g,
-  rcases hf with ⟨B, hB⟩,
-  use B,
-  intro x,
-  specialize hB x,
-  rw add_comm,
-  simp,
-  tidy 
- end} -/
-
+  
 def 𝔼  := quotient_add_group.quotient B  
 
 instance : add_comm_group 𝔼 := quotient_add_group.add_comm_group B  
