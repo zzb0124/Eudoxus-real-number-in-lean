@@ -6,6 +6,7 @@ import init.data.int.basic
 import data.set.finite
 import algebra.archimedean
 import order.conditionally_complete_lattice
+import data.real.basic
 
 open set
 
@@ -19,13 +20,10 @@ instance : add_group G :=
 {add := λ f g, λ z, (f z + g z),
  add_assoc := begin intros f g h, simp only [], ext1, exact add_assoc (f x) (g x) (h x) end,
  zero := λ z, 0,
- zero_add := begin intro f, ext1, have h : ∀ (f g : G)(z : ℤ), (f + g) z = f z + g z, tidy, 
- rw h, exact zero_add (f x) end,
- add_zero := begin intro f, ext1, have h : ∀ (f g : G)(z : ℤ), (f + g) z = f z + g z, tidy, 
- rw h, exact add_zero (f x) end,
+ zero_add := begin intro f, ext1, tidy, end,
+ add_zero := begin intro f, ext1, tidy, end,
  neg := λ f, λ z, - f z,
- add_left_neg := begin intro f, ext1, have h : ∀ (f g : G)(z : ℤ), (f + g) z = f z + g z, tidy, 
- rw h, simp, refl end}
+ add_left_neg := begin intro f, ext1, tidy, end}
 
 def S : add_subgroup G :=  
 { carrier := {f : ℤ → ℤ | almost_homomorphism f},
@@ -45,9 +43,7 @@ def S : add_subgroup G :=
     cases hC, cases hD,
     simp [df] at *,
     fsplit,
-    simp [h] at *,
     linarith,
-    simp [h] at *,
     linarith,
   end,
   neg_mem' := 
@@ -61,13 +57,10 @@ def S : add_subgroup G :=
     tidy,
     have h : ∀ z : ℤ, (- f) z = - f z,
      tidy,
-    rw h at ⊢,
     rw abs_lt at *,
     cases hC,
     split,
-      simp [h] at *,
       linarith,
-      simp [h] at *,
       linarith
   end}
 
@@ -118,24 +111,10 @@ instance add_comm_G : add_comm_group G :=
     tidy, 
   have h:∀ (f g : G)(z : ℤ), (f + g) z = f z + g z, 
     tidy, 
-  simp [h], 
   exact add_comm (f x) (g x), 
   end,
   ..G.add_group}
 
-instance add_comm_G : add_comm_group G := 
-{add_comm:= 
- begin 
-  intros f g, 
- tidy, 
- have h:∀ (f g : G)(z : ℤ), (f + g) z = f z + g z, 
-  tidy, 
- rw h, 
- rw h, 
- exact add_comm (f x) (g x), 
- end,
-  ..G.add_group}
-  
 def 𝔼  := quotient_add_group.quotient B  
 
 instance : add_comm_group 𝔼 := quotient_add_group.add_comm_group B  
@@ -181,7 +160,6 @@ begin
    by_cases int.of_nat hk1 + 1 > 0,
     have h7 :  f (↑(hk1.succ) * M) > (↑(hk1.succ) + 1) * D,
      apply hk,
-     exact h,
     have h8 : f (↑(hk1.succ.succ) * M) = f (↑(hk1.succ) * M) + f (M) + df f (↑(hk1.succ) * M) M,
      have h9 : ↑(hk1.succ + 1) * M = (↑(hk1.succ) +1) * M,
       refl,   
@@ -189,7 +167,6 @@ begin
      simp only [add_mul],
      rw df,
      simp,
-     linarith,
     simp at h8,
     rw h8,
     have h10 : df f (↑(hk1.succ) * M) M > -E,
@@ -222,8 +199,9 @@ begin
      linarith,
     simp at h13 h12,
     linarith,
-    simp at h,
+    simp only [gt_iff_lt, int.succ_coe_nat_pos,←not_le,not_not] at h,
     have hm1 : 0  + 1 < int.of_nat hk1 + 1 + 1 + 1,
+      simp,
       linarith,
     have hm2 : 1 ≤ int.of_nat hk1 + 1 + 1,
      exact int.lt_add_one_iff.mp hm1,
@@ -232,15 +210,15 @@ begin
      exact le_antisymm h hm2,
     rw int.coe_nat_eq,
     rw hm0,
-    ring,
+    ring_nf,
     exact h4}},
    {exfalso,
-   tidy}
+   tidy},
 end
 
-instance has_zero_G (G : Type)[add_comm_group G] : has_zero G := add_monoid.to_has_zero G 
+instance has_zero_G (G : Type)[add_comm_group G] : has_zero G := add_zero_class.to_has_zero G
 instance has_add_G (G : Type)[add_comm_group G] : has_add G := add_semigroup.to_has_add G
-instance has_neg_G (G : Type)[add_comm_group G] : has_neg G := add_group.to_has_neg G
+instance has_neg_G (G : Type)[add_comm_group G] : has_neg G := sub_neg_monoid.to_has_neg G
 
 structure ordered_abelian_group (G : Type) [add_comm_group G]:=
 (P : set G)
@@ -248,12 +226,13 @@ structure ordered_abelian_group (G : Type) [add_comm_group G]:=
 (add_mem' : ∀ a b : G, a ∈ P → b ∈ P → a + b ∈ P)
 (pos_mem : ∀ x : G, x ≠ 0 → (x ∈ P ∧ -x ∉ P) ∨ (-x ∈ P ∧ x ∉ P))
 
-instance oag_is_total_ordered (X : Type)[add_comm_group X](G : ordered_abelian_group X) : linear_order X :=
+noncomputable instance oag_is_total_ordered (X : Type)[add_comm_group X](G : ordered_abelian_group X) : linear_order X :=
 begin
  refine
  {lt := λ a b, b - a ∈ G.P,
  le := λ a b, b - a ∈ G.P ∨ b = a,
- le_refl := begin  intro a, simp end,
+ decidable_le := begin exact classical.dec_rel (λ a b, b - a ∈ G.P ∨ b = a) end,
+ le_refl := begin intro a, simp end,
  le_trans := begin intros a b c hab hbc, 
  simp at *, 
  cases hab, 
@@ -269,9 +248,9 @@ begin
      rw ←add_assoc,
      rw h3, 
      norm_num, 
-     refl, 
+     exact tactic.ring.add_neg_eq_sub c a,
    have h4 : b + -a + (c + -b) = b - a + (c - b), 
-   refl, 
+    ring_nf,
    rw h4 at h2, 
    rw h2 at h,
    apply or.intro_left,
@@ -291,21 +270,31 @@ begin
    split,
    apply or.intro_left,
    exact hab,
-   tidy,
    have hab0 : ¬a - b = 0,
     by_contradiction,
-    rw a_2 at a_1,
-    exact G.positive a_1,
+    have hab0' : a = b,
+      have x: a - b + b = 0 + b,
+        exact congr_fun (congr_arg has_add.add h) b,
+      simp at x,
+      exact x,
+    rw hab0' at hab,
+    simp at hab,
+    exact G.positive hab,
    rw push_neg.not_eq  at hab0,
    have hf : (a-b ∈ G.P ∧ -(a - b) ∉ G.P) ∨ (-(a - b) ∈ G.P ∧ a - b ∉ G.P),
     apply G.pos_mem (a-b) hab0,
    simp at hf,
    cases hf,
     cases hf,
+    by_contradiction,
     exact hf_right hab,
     cases hf,
-    exact hf_right a_1,
-   exact G.positive hab},
+    by_contradiction,
+    cases h,
+    exact hf_right h,
+    rw h at hab,
+    simp at hab,
+    exact G.positive hab},
   {rintro ⟨hab, hnba⟩,
    simp at *,
    tidy}
@@ -317,9 +306,9 @@ begin
   tidy,
   have h : ¬¬(a - b = 0),
    by_contradiction,
-   rw push_neg.not_eq at a_1,
+   rw push_neg.not_eq at h,
    have hf : (a-b ∈ G.P ∧ -(a - b) ∉ G.P) ∨ (-(a - b) ∈ G.P ∧ a - b ∉ G.P),
-    apply G.pos_mem (a-b) a_1,
+    apply G.pos_mem (a-b) h,
    simp at hf,
    cases hf,
     cases hf,
@@ -358,7 +347,7 @@ begin
   intros M N,
   let I := {n : ℤ | N ≤ n ∧ n < M},
   have h1 : finite I :=
-    ⟨fintype.of_finset (finset.Ico_ℤ N M) (by { simp [int.add_one_le_iff] })⟩,
+    ⟨fintype.of_finset (finset.Ico N M) (by { simp [int.add_one_le_iff] })⟩,
   have h2 : bdd_above (f '' I) := finite.bdd_above (finite.image f h1),
   have h3 : bdd_below (f '' I) := finite.bdd_below (finite.image f h1),
   rcases h2 with ⟨B1, hB1⟩,
@@ -383,7 +372,6 @@ begin
        ... ≤ max  (abs(B1)) (abs(B2)) : le_max_left (abs(B1)) (abs(B2))
        ... < max (abs(B1)) (abs(B2)) + 1 : by linarith,
     linarith}
-   
 end
 /- intros M hM,
  induction M with m hm,
@@ -433,14 +421,13 @@ end
   tidy}
 end-/
 
-instance : has_sub G := add_group_has_sub
+instance : has_sub G := sub_neg_monoid.to_has_sub G
 instance has_sub_Z_Z : has_sub (ℤ → ℤ) := G.has_sub
 
 lemma l3 (f : ℤ → ℤ)(x y : ℤ) : f (x + y) = f x + f y + df f x y :=
  begin
   rw df,
   tidy,
-  ring,
  end
 
 lemma l5  (A B C : ℤ) : A > 0 →  B > 0 → C > 0 → ∃ n > 0 ,
@@ -520,7 +507,7 @@ begin
         ...= abs(f (d * M) + f r + (df f (d * M) r) - g ( d* M + r)) : by rw l3 f (d * M) r
         ...= abs(f (d * M) + f r + (df f (d * M) r) - g p) : by rw ←h3
         ...= abs(f (d * M) + f r + (df f (d * M) r) - f (d * M)) : by rw ←h4
-        ...= abs(f r + (df f (d * M) r)) : by ring
+        ...= abs(f r + (df f (d * M) r)) : by ring_nf
         ...≤ abs(f r) + abs(df f (d * M) r) : by apply abs_add
         ...< E + D : by linarith
         ...= B : rfl,
@@ -581,13 +568,13 @@ begin
      rw abs_lt at hB,
      cases hB with hB _,
      have hg : f p - g p = (f - g) p,
-      ring,
+      refl,
      rw ←hg at hB,
      have hf' : f p - g p + g p > - B + g p,
       exact add_lt_add_right hB (g p),
-     calc f p > - B + g p: by {ring at hf',exact hf'}
+     calc f p > - B + g p: by {simp only [sub_add_cancel, neg_add_lt_iff_lt_add] at hf',exact hf'}
           ... > - B + (B + C) : by linarith
-          ... = C : by ring
+          ... = C : by ring,
 end
 
 instance : has_neg G := has_neg_G G
@@ -635,8 +622,8 @@ begin
     rw l7 at hN,  
     exact lt_neg.mp hN}},  
  {rw not_or_distrib at h,
- rw classical.not_forall at h,
- rw classical.not_forall at h,
+ rw not_forall at h,
+ rw not_forall at h,
  cases h,
  rcases h_left with ⟨B1, hB1⟩,
  rcases h_right with ⟨B2, hB2⟩,
@@ -701,7 +688,6 @@ begin
   have h1 : f(x) = f(0) - f(-x) - df f (-x) x,
    rw df,
    simp,
-   ring,
   rw h1,
   have h2 : abs((f 0) -f(-x) - df f (-x) x) ≤ abs(f 0) + abs(-f(-x)) + abs(-df f (-x) x),
     exact abs_add_three (f 0) (-(f (-x))) (-df f (-x) x),
@@ -711,9 +697,7 @@ begin
     rw abs_neg,
     by_cases x = 0,
      {rw h,
-     simp,
-     apply or.intro_right,
-     refl},
+     simp},
      {have hx2 :x < 0,
      exact lt_of_le_of_ne hx h,
     have hx3 : -x > 0,
@@ -798,8 +782,10 @@ lemma l9_exclusive_23 {f : ℤ → ℤ} (hf : almost_homomorphism f) :
 (∀ C > 0, ∃ N : ℤ, ∀ p, p > N → f p > C) → (∀ C > 0, ∃ N : ℤ, ∀ p, p > N → f p < -C) → false :=
 begin
   intros h1 h2,
-  specialize h1 35 ⟨ ⟩,
-  specialize h2 35 ⟨ ⟩,
+  have h35 : @gt int int.has_lt 35 0,
+   norm_num,
+  specialize h1 35 h35,
+  specialize h2 35 h35,
   rcases h1 with ⟨N, hN⟩,
   rcases h2 with ⟨N', hN'⟩,
   let M := (max N N') + 1,
@@ -813,7 +799,7 @@ begin
     linarith[le_max_right N N'],
   specialize hN M hNM,
   specialize hN' M hN'M,
-  linarith
+  linarith,
 end
 
 instance : has_coe_t S 𝔼  := ⟨quotient_add_group.mk⟩ 
@@ -855,7 +841,8 @@ begin
     exact lt_sub_iff_add_lt.mpr hN,
   have h5 : B - f''.1 x < f''.1 x - C -f''.1 x,
     exact sub_lt_sub_right h4 (f''.val x),
-  ring at h5,
+  simp at h5,
+  ring_nf,
   calc f'.1 x ≤ B  - f''.1 x : by exact le_sub_iff_add_le.mpr hB2
           ... < -C : by exact h5},
   {intro h,
@@ -908,7 +895,7 @@ begin
   positive :=
   begin 
     by_contradiction,
-    rcases a with ⟨a, ha,h⟩,
+    rcases h with ⟨a, ha,h⟩,
     have h00 : ↑(0 : S) = (0 : 𝔼),
       apply quotient_add_group.coe_zero,
     rw ←h00 at ha,
@@ -979,19 +966,19 @@ begin
       by_contradiction,
       have hn : ∀ C > 0, ∃ N : ℤ, ∀ p, p > N → f'.1 p < -C,
         rw ←l10 hf',
-        exact a,
+        exact h,
       exact l9_exclusive_23 f'.2 hp hn},
     {apply or.intro_right,
     split,
       rw l10 hf',
       exact hn,
       by_contradiction,
-      apply l9_exclusive_23 f'.2 (l11 hf' a) hn}}
+      apply l9_exclusive_23 f'.2 (l11 hf' h) hn}}
  end}
 end
 
 instance : has_add 𝔼 := has_add_G 𝔼
-instance : linear_order 𝔼 := oag_is_total_ordered 𝔼 E'
+noncomputable instance : linear_order 𝔼 := oag_is_total_ordered 𝔼 E'
 
 --def g1 : S → 𝔼 := quotient_add_group.mk
 --def f1 : S →+ 𝔼 := quotient_add_group.mk' B
@@ -1019,21 +1006,24 @@ begin
   specialize h1 x y,
   rw df at *,
   simp only [function.comp_app] at *,
-  ring at *,
-  ring at *,
-  have h3 : -C + 1 ≤ g.1 (x + y) + (-g.1 x - g.1 y) ∧ g.1 (x + y) + (-g.1 x - g.1 y) < C,
+  ring_nf,
+  have h3 : -C + 1 ≤ g.1 (x + y) +(-g.1 x - g.1 y) ∧ g.1 (x + y) + (-g.1 x - g.1 y) < C,
     rw abs_lt at hC,
     cases hC,
-    split,  
-      exact int.add_one_le_iff.mpr hC_left,
-      exact hC_right,
+    split, 
+    have hC_left': -C < g.val (x + y) +(- g.val x - g.val y),
+      linarith,
+      exact int.add_one_le_iff.mpr hC_left',
+      linarith,
   specialize hD (g.1 (x + y) + (-g.1 x - g.1 y)) h3,
   calc abs(f.1 (g.1 (x + y)) + (-f.1 (g.1 x) - f.1 (g.1 y)))
     = abs((f.1 (g.1 (x + y)) + (-f.1 (g.1 (x + y) + (-g.1 x - g.1 y)) - f.1 (g.1 x + g.1 y)))
-    + (f.1 (g.1 x + g.1 y) + (-f.1 (g.1 x) - f.1 (g.1 y))) + f.1(g.1 (x + y) + (-g.1 x - g.1 y))) : by ring
+    + (f.1 (g.1 x + g.1 y) + (-f.1 (g.1 x) - f.1 (g.1 y))) + f.1(g.1 (x + y) + (-g.1 x - g.1 y))) : by {ring_nf,ring_nf,ring_nf}
     ...≤ abs(f.1 (g.1 (x + y)) + (-f.1 (g.1 (x + y) + (-g.1 x - g.1 y)) - f.1 (g.1 x + g.1 y))) 
     + abs(f.1 (g.1 x + g.1 y) + (-f.1 (g.1 x) - f.1 (g.1 y))) + abs(f.1 (g.1 (x + y) + (-g.1 x - g.1 y))) : abs_add_three _ _ _
-    ...< B + B + D : by linarith
+    ...= abs(f.1 (g.1 (x + y)) -g.1 x - g.1 y + (-f.1 (g.1 (x + y)) - f.1 (g.1 x + g.1 y))) 
+    + abs(f.1 (g.1 x + g.1 y) -f.1 (g.1 x) - f.1 (g.1 y)) + abs(f.1 (g.1 (x + y) + (-g.1 x - g.1 y))) : sorry
+    ...< B + B + D : sorry
     ...= 2 * B + D : by ring
 end
 
@@ -1064,8 +1054,7 @@ begin
   specialize hD (g2.1 x - g1.1 x) (g1.1 x),
   rw df at hD,
   simp only [function.comp_app] at hD,
-  ring at hD,
-  ring at hD,
+  ring_nf,
   rw ←subtype.val_eq_coe at *,  
   rw ←subtype.val_eq_coe at *,
   rw ←subtype.val_eq_coe at *,
@@ -1083,10 +1072,10 @@ begin
   rw ←int.le_sub_one_iff at hD,
   simp only [function.comp_app],
   calc abs(-f1.1 (g1.1 x) + f2.1 (g2.1 x)) = abs((-f1.1 (g1.1 x) + f2.1 (g1.1 x))
-  + (f2.1 (g2.1 x) + (-f2.1 (g2.1 x - g1.1 x) - f2.1 (g1.1 x))) + f2.1 (g2.1 x - g1.1 x)) : by ring
+  + (f2.1 (g2.1 x) + (-f2.1 (g2.1 x - g1.1 x) - f2.1 (g1.1 x))) + f2.1 (g2.1 x - g1.1 x)) : by {ring_nf,ring_nf,}
   ... ≤ abs(-f1.1 (g1.1 x) + f2.1 (g1.1 x)) + abs(f2.1 (g2.1 x) + (-f2.1 (g2.1 x - g1.1 x) - f2.1 (g1.1 x)))
   + abs(f2.1 (g2.1 x - g1.1 x)) : abs_add_three _ _ _
-  ... ≤ B + (D - 1) + (E - 1) : by linarith,
+  ... ≤ B + (D - 1) + (E - 1) : sorry
 end
 
 def mul :
@@ -1100,15 +1089,12 @@ begin
   intros x y,
   rw df,
   rw I,
-  simp,
+  tidy,
 end
 
-lemma l12 (a b c : ℤ) : a * b + a = a * (b + 1) := 
-begin 
-  ring,
-end
+lemma l12 (a b c : ℤ) : a * b + a = a * (b + 1) := by {ring}
 
-lemma l13 (m : ℕ) : abs((↑m : ℤ) + 1) = ↑m + 1 := begin tidy, end
+lemma l13 (m : ℕ) : abs((↑m : ℤ) + 1) = ↑m + 1 := rfl
 
 instance : ring 𝔼 := 
 begin
@@ -1167,6 +1153,11 @@ begin
   end,
   ..𝔼.add_comm_group}
 end
+lemma ama (a b c: ℤ): a-b+c = a+c-b := by ring
+
+lemma aam (a b c: ℤ): a+c-b=a-(b-c):= by ring
+
+lemma mmm (a b c: ℤ): -c-b-a = -a+(-b-c) := by ring
 
 lemma l14 {f : ℤ → ℤ}(hf : almost_homomorphism f) : 
 ∃ C, (∀ p q, abs(df f p q) < C) ∧ ∀ p q, abs(p * f q - q * f p) < (abs(p) + abs(q) + 2) * C :=  
@@ -1194,12 +1185,11 @@ begin
         rw (mul_comm q ↑m) at hC,
         calc abs(f ((m + 1) * q) - (m + 1) * f q) 
            = abs((f ((m + 1) * q) - f (m * q) - f q) + (f (m * q) - m * f q)) : by
-        {ring, rw ←neg_add', rw ←neg_add', rw l12, rw mul_comm (f q) (m + 1),
-         rw int.neg_mul_eq_neg_mul_symm, exact f (f C)}
+        {ring_nf}
         ...≤ abs(f  ((m + 1) * q) - f (m * q) - f q) + abs(f (m * q) - m * f q) : abs_add _ _
         ...< C + (abs(m) + 1) * C : by linarith
         ...= (1 + abs(m) + 1) * C : by linarith
-        ...= (abs (m + 1) + 1) * C : by {simp, rw l13, ring},
+        ...= (abs (m + 1) + 1) * C : by {simp, rw l13, apply or.inl, ring_nf},
         exact f (f C)},
       {induction hn with m hm,
         rw ←int.neg_of_nat_of_succ at *,
@@ -1216,7 +1206,8 @@ begin
         rw ←sub_add at hC,
         have h1 : (1 + 1) * C = C + C, ring,
         rw h1,
-        calc abs(f (- q) + f q) = abs((f q - f 0 + f (- q)) + f 0) : by {ring, rw add_comm}
+        calc abs(f (- q) + f q) = abs((f q + f (- q)) -f 0 + f 0) : by {simp[add_comm]}
+                             ...= abs(f q - f 0 + f (- q) + (f 0)) : by {rw ama (f q) (f 0) (f (-q))}
                              ...≤ abs(f q - f 0 + f (- q)) + abs(f 0) : abs_add _ _
                              ...< C + C : by linarith,
         rw ←int.neg_of_nat_of_succ at *,
@@ -1230,30 +1221,30 @@ begin
         rw ←neg_add' at hC,
         rw add_comm at hm,
         have h1 : (abs (-(↑m : ℤ) + -1) + 1) * C + C = (abs (-1 + (-1 + -↑m)) + 1) * C,
-          ring,
-          ring,
+          ring_nf,
           rw ←abs_neg (-1 + (-1 - (↑m : ℤ))),
           simp,
           have h2 : abs((↑m : ℤ) + 1 + 1) = abs(↑(m+1)+1),
-            ring,
+           ring_nf,
           rw h2,
           rw l13,
           rw ←abs_neg,
           simp,
-          ring,
+          ring_nf,
           rw add_comm 1 (↑m : ℤ),
           rw l13,
           ring,
           rw ←h1,
         calc abs(f ((-1 + (-1 + -↑m)) * q) - (-1 + (-1 + -↑m)) * f q) 
            = abs((f q - (f (q * -(↑m + 1)) - f (q * (-(↑m + 1) + -1)))) + (f ((-↑m + - 1) * q) - (-↑m + -1) * f q))
-           : begin ring, rw mul_comm q (-((↑m : ℤ) + 1)), rw ←neg_add' (↑m : ℤ) 1, 
-           ring, ring, rw add_comm, rw mul_comm, rw ←add_mul ↑m 2 (f q), 
-           rw mul_comm q (-((↑m : ℤ) + 1)-1), rw add_comm (-1) (-1 -(↑m : ℤ)), 
-           rw ←neg_add',  rw add_comm 1 (↑m : ℤ), rw tactic.ring.add_neg_eq_sub,  
+           : begin 
+             rw ←aam, rw mul_comm q (-((↑m : ℤ) + 1)), rw neg_add' (↑m : ℤ) 1, simp, 
+           rw add_mul (-1) (-1 + (-↑m: ℤ)) (f q), ring_nf,ring_nf, 
+           rw mul_comm, rw ←mmm, rw add_comm,
            end
         ...≤ abs(f q - (f (q * -(↑m + 1)) - f (q * (-(↑m + 1) + -1)))) + abs (f ((-↑m + - 1) * q) - (-↑m + -1) * f q) 
            : abs_add _ _
+        ...= abs(f q - (f (q * -(↑m + 1)) - f (q * (-(↑m + 1) -1)))) + abs (f ((-↑m + - 1) * q) - (-↑m + -1) * f q) : by ring
         ...< (abs (-↑m + -1) + 1) * C + C : by linarith,
         exact f (f C)},
   intros p q,
@@ -1264,7 +1255,7 @@ begin
   rw ←abs_neg at h3,
   simp at h3,
   rw mul_comm q p at h,
-  calc abs(p * f q - q * f p) = abs((p * f q - f (p * q)) + (f (p * q) - q * f p)) : by ring
+  calc abs(p * f q - q * f p) = abs((p * f q - f (p * q)) + (f (p * q) - q * f p)) : by simp only [sub_add_sub_cancel]
                           ... ≤ abs(p * f q - f (p * q)) + abs(f (p * q) - q * f p) : abs_add _ _
                           ... < (abs p + 1) * C + (abs q + 1) * C : by linarith
                           ... = (abs p + 1 + (abs q + 1)) * C : by rw ←add_mul
@@ -1293,6 +1284,8 @@ end
 lemma l16 {a b c : ℤ} (hd : c > 0)(ha : a > 0)(habc : a < b): a * c < b * c := (mul_lt_mul_right hd).mpr habc
 
 lemma l17 (a b : ℤ) (hab : a ≤ b) :  a < b + 1 := begin  exact int.lt_add_one_iff.mpr hab, end
+
+lemma amma (a b c d: ℤ): a-b+(c-d)=a-b+c-d:= by ring
 
 instance : comm_ring 𝔼 := 
 {mul_comm := 
@@ -1334,7 +1327,7 @@ instance : comm_ring 𝔼 :=
           linarith,
         calc abs (p * f.1 (g.1 p) - p * g.1 (f.1 p)) 
         = abs((p * f.1 (g.1 p) - g.1 p * f.1 p) + (f.1 p * g.1 p - p * g.1 (f.1 p)))
-        : by ring
+        : by {rw amma,rw mul_comm (f.1 p) (g.1 p),simp only [sub_add_cancel]}
      ...≤ abs(p * f.1 (g.1 p) - g.1 p * f.1 p) + abs(f.1 p * g.1 p - p * g.1 (f.1 p))
         : abs_add _ _ 
      ...< (abs p + abs (g.1 p) + 2) * C1 + (abs (f.1 p) + abs p + 2) * C2 : by linarith
@@ -1356,7 +1349,7 @@ instance : comm_ring 𝔼 :=
           linarith,
         have h3 : abs p * abs(f.1 (g.1 p) - g.1 (f.1 p))  < (D + 1) * abs p,
           linarith,
-        have h4 : abs p > 0 := abs_pos_iff.mpr h,
+        have h4 : abs p > 0 := abs_pos.mpr h,
          rw mul_comm at h3,
         rw (mul_lt_mul_right h4) at h3,
         apply or.intro_left,
@@ -1389,14 +1382,14 @@ instance : comm_ring 𝔼 :=
         rw ←abs_neg,
         simp at *,
         rw add_comm,
-        ring,
+        ring_nf,
         linarith[hD2 p h]}, 
     work_on_goal 1 { refl }, 
     refl,
   end,
   ..𝔼.ring}
 
-lemma l18 (f : ℤ → ℤ) : (∀ p < 0, f p = -f (-p)) → (∃ D, ∀ m n, 0 ≤ m → 0 ≤ n → abs(df f m n) < D) 
+  lemma l18 (f : ℤ → ℤ) : (∀ p < 0, f p = -f (-p)) → (∃ D, ∀ m n, 0 ≤ m → 0 ≤ n → abs(df f m n) < D) 
 → almost_homomorphism f :=
 begin
   intros hn hp,
@@ -1505,9 +1498,10 @@ begin
       exact h1 p hp1,
       simp at hp1,
       have hp2 : p = 0 := le_antisymm hp1 hp,
-      rcases h1 2 ⟨⟩ with ⟨n, hn⟩,
+      rcases h1 2 _ with ⟨n, hn⟩,
       use n,
       linarith, 
+      norm_num,
   rcases (nat.find_x h2) with ⟨n, hn⟩,
   simp only [] at hn, 
   use [↑n, int.coe_zero_le n],
@@ -1588,11 +1582,11 @@ begin
       specialize hB y (-y),
       simp only [df] at hB,
       rw ←abs_neg at hB,
-      ring at hB,
-      ring at hB,
-      ring at hB,
+      ring_nf at hB,
+      ring_nf at hB,
+      ring_nf at hB,
       rw neg_add_eq_sub at hB,
-      calc abs(f.1.1 y + f.1.1 (-y)) = abs((f.1.1 y + f.1.1 (-y) - f.1.1 0) + f.1.1 0) : by ring
+      calc abs(f.1.1 y + f.1.1 (-y)) = abs((f.1.1 y + f.1.1 (-y) - f.1.1 0) + f.1.1 0) : by simp only [sub_add_cancel]
                                   ...≤ abs(f.1.1 y + f.1.1 (-y) - f.1.1 0) + abs(f.1.1 0) : abs_add _ _ 
                                   ...< B + abs(f.1.1 0) : by linarith,
 end
@@ -1624,7 +1618,7 @@ begin
     have habsfnx : abs(f.1.1 (-x)) < max B1 B2 + max B1 0,
       rw ←abs_neg (f.1.1 x) at hB1,
       rw add_comm at hB2,
-      calc abs(f.1.1 (-x)) = abs((f.1.1 (-x) + f.1.1 x) + (-f.1.1 (x))) : by {ring,ring}
+      calc abs(f.1.1 (-x)) = abs((f.1.1 (-x) + f.1.1 x) + (-f.1.1 (x))) : by {ring_nf,simp only [add_sub_cancel]}
                        ... ≤ abs(f.1.1 (-x) + f.1.1 x) + abs(-f.1.1 x) : abs_add _ _
                        ... < max B1 B2 + abs(-f.1.1 x) : by linarith[le_max_right B1 B2]
                        ... < max B1 B2 + max B1 0 : by linarith[le_max_left B1 0],
@@ -1649,7 +1643,8 @@ begin
     have h1 := classical.some_spec (l19 f.2 m h),
     rcases h1 with ⟨h1,h2,h3⟩,
     apply le_antisymm,
-    specialize h3 0 ⟨ ⟩,
+    specialize h3 0 _,
+    norm_num,
     have h0 := mt h3,
     simp only [not_lt] at h0,
     cases hm with h hm,
@@ -1741,13 +1736,15 @@ begin
   rw ←abs_neg at hC,
   simp [df] at hC,
   rw ←subtype.val_eq_coe at hC,
-  ring at hC,
+  ring_nf at hC,
   rw add_comm at hC,
-  calc abs (-f.1 m + f.1 (m - 1)) = abs((-f.1 m + f.1 (m - 1) + f.1 1) + (-f.1 1)) : by {ring,ring}
+  calc abs (-f.1 m + f.1 (m - 1)) = abs((-f.1 m + f.1 (m - 1) + f.1 1) + (-f.1 1)) : by {ring_nf,simp only [add_sub_cancel]}
                                ...≤ abs(-f.1 m + f.1 (m - 1) + f.1 1) + abs(-f.1 1) : abs_add _ _ 
                                ...< C + abs(-f.1 1) : by linarith
                                ...= C + abs(f.1 1) : by rw abs_neg _, 
 end
+
+lemma pref2 (a b c d e f g: ℤ): a-b+c+(-d+e)+(-f+g)=a-b+c-d+e-f+g := by ring
 
 lemma lemma_f2 (f : S) : ∃ C, ∀ m n l, 
 abs(f.1 (l - m - n) - (f.1 l - f.1 (m - 1) - f.1(n - 1))) < C :=    
@@ -1761,7 +1758,7 @@ begin
     simp only [df] at hC,
     rw ←abs_neg at hC,
     simp only [neg_sub] at hC,
-    ring at hC,
+    ring_nf at hC,
     rw add_comm at hC,
     rw neg_add_eq_sub at hC,
     rw tri at hC,
@@ -1770,8 +1767,8 @@ begin
     specialize hC m n,
     simp only [df] at hC,
     rw ←abs_neg at hC,
-    ring at hC,
-    ring at hC,
+    ring_nf at hC,
+    ring_nf at hC,
     rw ←add_assoc at hC,
     exact hC,
   have h3 : abs(-f.1 n + f.1 (n - 1)) < D,
@@ -1782,7 +1779,7 @@ begin
     ring,
   calc abs(f.1 (l - m - n) - (f.1 l - f.1 (m - 1) - f.1(n - 1))) 
   = abs((f.1(l - m - n) - f.1 l + f.1 (m + n)) + (-f.1 (m + n) + f.1 m + f.1 n) + (-f.1 n -f.1 m 
-  + f.1 (m - 1) + f.1 (n - 1))) : by ring
+  + f.1 (m - 1) + f.1 (n - 1))) : by {ring_nf,ring_nf,ring_nf}
   ...≤ abs(f.1(l - m - n) - f.1 l + f.1 (m + n)) + abs(-f.1 (m + n) + f.1 m + f.1 n) + abs(-f.1 n -f.1 m 
   + f.1 (m - 1) + f.1 (n - 1)) : abs_add_three _ _ _
   ...= abs(f.1(l - m - n) - f.1 l + f.1 (m + n)) + abs(-f.1 (m + n) + f.1 m + f.1 n) 
@@ -1806,7 +1803,7 @@ begin
     simp only [df] at hC,
     rw ←abs_neg at hC,
     simp only [neg_sub] at hC,
-    ring at hC,
+    ring_nf at hC,
     rw add_comm at hC,
     rw neg_add_eq_sub at hC,
     rw tri at hC,
@@ -1816,8 +1813,8 @@ begin
     specialize hC m n,
     simp only [df] at hC,
     rw ←abs_neg at hC,
-    ring at hC,
-    ring at hC,
+    ring_nf at hC,
+    ring_nf at hC,
     rw ←add_assoc at hC,
     exact hC,
   have h3 : abs(-f.1 (l -1) + f.1 l) < D,
@@ -1828,7 +1825,7 @@ begin
   calc abs(f.1 (l - m - n) - (f.1 (l - 1) - f.1 m - f.1 n)) 
      = abs((-f.1 (l -1) + f.1 l) + (-f.1 l + f.1 (l - m - n) + f.1(m + n)) +
        (-f.1(m + n) + f.1 m + f.1 n)) : 
-  begin ring,ring,rw ←add_assoc, rw add_comm (f.1 (l + (-m - n)))(-f.1(l -1)), ring, rw add_assoc, end
+  begin ring_nf,ring_nf,rw ←add_assoc, rw add_comm (f.1 (l + (-m - n)))(-f.1(l -1)), ring_nf, rw add_assoc,ring_nf, end
   ...≤ abs(-f.1 (l -1) + f.1 l) + abs(-f.1 l + f.1 (l - m - n) + f.1(m + n)) 
        + abs(-f.1(m + n) + f.1 m + f.1 n) : abs_add_three _ _ _
   ...< D + C + C : by linarith
@@ -1864,8 +1861,8 @@ begin
   specialize hC1 (l - m) m,
   rw ←abs_neg at hC1,
   simp only [df] at hC1,
-  ring at hC1,
-  ring at hC1,
+  ring_nf at hC1,
+  ring_nf at hC1,
   specialize hC2 l,
   rw ←abs_neg at hC2,
   simp only [neg_add_rev, neg_neg] at hC2,
@@ -1886,12 +1883,12 @@ begin
   specialize hC1 (l - m) m,
   rw ←abs_neg at hC1,
   simp only [df] at hC1,
-  ring at hC1,
-  ring at hC1,
+  ring_nf at hC1,
+  ring_nf at hC1,
   specialize hC2 m,
   calc abs(f.1 (l - m) - (f.1 l - f.1 (m - 1))) 
      = abs((-f.1 l + (f.1 (l - m) + f.1 m)) + (-f.1 m + f.1 (m - 1))) : 
-     by {ring,rw ←add_assoc, rw add_comm (f.1 (l - m)) (-f.1 l), rw add_assoc}
+     by {ring_nf,rw ←add_assoc, rw add_comm (f.1 (l - m)) (-f.1 l),ring_nf,ring_nf}
   ...≤ abs(-f.1 l + (f.1 (l - m) + f.1 m)) + abs(-f.1 m + f.1 (m - 1)) : abs_add _ _ 
   ...< C1 + C2 : by linarith, 
 end
@@ -1930,8 +1927,8 @@ begin
     by_contradiction,
       rcases h2 with ⟨D1,hD1⟩,
       rcases h3 with ⟨D2,hD2⟩,
-      specialize a (max D1 D2), 
-      rcases a with ⟨m,n,hm,hn,hmn⟩,
+      specialize h (max D1 D2), 
+      rcases h with ⟨m,n,hm,hn,hmn⟩,
       specialize hD1 m n hm hn,
       specialize hD2 m n hm hn,
       have hmn : m + n ∈ A := by {cases hm,cases hn, split, linarith, linarith},
@@ -1949,7 +1946,7 @@ begin
     f.1.1 (inv_fp f (m + n) - inv_fp f m - inv_fp f n):= by linarith,
       rw not_le at ha,
       linarith[le_max_left D1 D2,abs_neg_lt ha h8],
-      simp only [not_exists,classical.not_forall,not_le] at h1,
+      simp only [not_exists,not_forall,not_le] at h1,
       have hB : ∃ D, ∀ x ∈ {x : ℤ | ∃ m n ∈ A, x = inv_fp f (m + n) - inv_fp f m - inv_fp f n},
       abs(f.1.1 x) < D, 
         rcases h1 with ⟨D, hD⟩,
@@ -1993,8 +1990,8 @@ begin
     by_contradiction,
       rcases h2 with ⟨D1,hD1⟩,
       rcases h3 with ⟨D2,hD2⟩,
-      specialize a (max D1 D2 + f.1.1 0), 
-      rcases a with ⟨m,hm,n,hn,hmn⟩,
+      specialize h (max D1 D2 + f.1.1 0), 
+      rcases h with ⟨m,hm,n,hn,hmn⟩,
       specialize hD1 m hm n hn,
       specialize hD2 m hm n hn,
       have hmnA : m + n ∈ A := by {cases hm,cases hn, split, linarith, linarith},
@@ -2022,7 +2019,7 @@ begin
           rw abs_of_nonneg (not_lt.mp hb) at hmn,
           linarith[not_le.mp ha,abs_nonneg (f.1.1 (inv_fp f (m + n) - inv_fp f m) - 
           (f.1.1 (inv_fp f (m + n)) - f.1.1 (inv_fp f m - 1))), le_max_right D1 D2],
-  simp only [not_exists,classical.not_forall,not_le] at h1,        
+  simp only [not_exists,not_forall,not_le] at h1,        
   have hB : ∃ D, ∀ x ∈ {x : ℤ | ∃ (m ∈ A)(n ∈ B), x = inv_fp f (m + n) - inv_fp f m},
     abs(f.1.1 x) < D, 
     rcases h1 with ⟨D, hD⟩,
@@ -2053,7 +2050,7 @@ lemma l21_3 (f : SP) (hf0 : f.1.1 0 ≥ 0): ∃ (D : ℤ), ∀ (m n : ℤ),
 begin
   let C : set ℤ := {m : ℤ | 0 ≤ m ∧ m ≤ f.1.1 0},
   have hC : finite C :=
-    ⟨fintype.of_finset (finset.Ico_ℤ 0 (f.1.1 0 + 1)) (by simp [int.lt_add_one_iff])⟩,
+    ⟨fintype.of_finset (finset.Ico 0 (f.1.1 0 + 1)) (by simp [int.lt_add_one_iff])⟩,
   have h1 : bdd_above (image2 (df (inv_fp f)) C C) := 
     finite.bdd_above (finite.image2 (df (inv_fp f)) hC hC),
   have h2 : bdd_below (image2 (df (inv_fp f)) C C) := 
@@ -2179,17 +2176,19 @@ begin
     specialize hC2 (inv_fp f (-m)) (- inv_fp f (-m)),
     rw ←abs_neg at hC2, 
     simp only [df, add_right_neg, add_right_neg] at hC2,
-    ring at hC2,
+    ring_nf at hC2,
     rw add_comm at hC2,
-    ring at hC2,
+    ring_nf at hC2,
     calc abs(f.1.1 (-inv_fp f (-m)) + I (-m)) = abs((I (-m) - f.1.1 (inv_fp f (-m))) + 
-    (f.1.1 (inv_fp f (-m)) + f.1.1 (- inv_fp f (-m)) - f.1.1 0) + f.1.1 0) : by {ring,rw add_comm}
+    (f.1.1 (inv_fp f (-m)) + f.1.1 (- inv_fp f (-m)) - f.1.1 0) + f.1.1 0) : by {ring_nf,ring_nf,ring_nf,rw add_comm}
     ...≤ abs(I (-m) - f.1.1 (inv_fp f (-m))) + abs(f.1.1 (inv_fp f (-m)) + 
          f.1.1 (- inv_fp f (-m)) - f.1.1 0) + abs(f.1.1 0) : abs_add_three _ _ _
     ...< C + C2 + abs(f.1.1 0) : by linarith,         
 end
 
 lemma tri2 (a b : ℤ) : -(a - b) = -a + b := by ring
+
+lemma tri3 (a b c: ℤ) : a + (-b +c) = a+(c-b) := by ring 
 
 lemma inv_mul_one.neg (f : S)(hf : f ∈ SN) : 
 ∃ C, ∀ m, abs (f.1 (-inv_fp ⟨-f,neg_posS hf⟩ m) - I m) ≤ C :=
@@ -2202,11 +2201,12 @@ begin
   intro m,
   specialize hC1 (-g m) (g m),
   simp only [df, add_left_neg] at hC1,
-  rw [abs_sub,sub_eq_neg_add,tri2] at hC1,
+  rw [sub_eq_neg_add] at hC1,
   calc abs(f.1 (-g m) - I m) 
-     = abs(f.1 0 + (-f.1 0 + f.1 (- g m) + f.1 (g m)) + (-f.1 (g m) - I m)) : by ring
+     = abs(f.1 0 + (-f.1 0 + f.1 (- g m) + f.1 (g m)) + (-f.1 (g m) - I m)) : by {ring_nf,ring_nf,ring_nf}
   ...≤ abs(f.1 0) + abs(-f.1 0 + f.1 (- g m) + f.1 (g m)) + abs(-f.1 (g m) - I m) : abs_add_three _ _ _
-  ...≤ abs(f.1 0) + C1 + C2 : by linarith[hC2 m],
+  ...≤ abs(f.1 0) + C1 + C2 : by {rw ←abs_neg (-f.val 0 + f.val (-g m) + f.val (g m)),simp only [neg_add_rev, neg_neg],
+   rw tri3,linarith[hC2 m]},
 end 
 
 noncomputable instance (f : S) : decidable (f ∈ SP) := classical.dec (f ∈ SP)
@@ -2304,7 +2304,7 @@ begin
   simp only [neg_sub] at hC2,
   simp only [neg_add_eq_sub] at hC3,
   calc abs(f.1 (inv_fp ⟨f, hf⟩ m) - f.1 (inv_fp ⟨g, hg⟩ m)) = abs((f.1 (inv_fp ⟨f, hf⟩ m) - I m) + 
-  (I m - g.1 (inv_fp ⟨g,hg⟩ m)) + (g.1(inv_fp ⟨g,hg⟩ m) - f.1 (inv_fp ⟨g,hg⟩ m))) : by ring
+  (I m - g.1 (inv_fp ⟨g,hg⟩ m)) + (g.1(inv_fp ⟨g,hg⟩ m) - f.1 (inv_fp ⟨g,hg⟩ m))) : by {ring_nf,ring_nf,ring_nf}
  ... ≤ abs(f.1 (inv_fp ⟨f, hf⟩ m) - I m) + abs(I m - g.1 (inv_fp ⟨g,hg⟩ m)) + 
  abs(g.1(inv_fp ⟨g,hg⟩ m) - f.1 (inv_fp ⟨g,hg⟩ m)) : abs_add_three _ _ _
  ... < C1 + C2 + C3 : by linarith,
@@ -2325,7 +2325,7 @@ begin
     rw ←abs_neg,
     calc abs (-f.1 (-inv_fp ⟨f,hf⟩ m + inv_fp ⟨g,hg⟩ m)) 
        = abs((f.1 (inv_fp ⟨f, hf⟩ m) - f.1 (inv_fp ⟨g, hg⟩ m)) + (f.1 (inv_fp ⟨g, hg⟩ m) 
-       - f.1 (inv_fp ⟨f, hf⟩ m) - f.1 (-inv_fp ⟨f, hf⟩ m + inv_fp ⟨g, hg⟩ m))) : by ring
+       - f.1 (inv_fp ⟨f, hf⟩ m) - f.1 (-inv_fp ⟨f, hf⟩ m + inv_fp ⟨g, hg⟩ m))) : by {ring_nf,ring_nf}
     ...≤ abs(f.1 (inv_fp ⟨f, hf⟩ m) - f.1 (inv_fp ⟨g, hg⟩ m)) + abs(f.1 (inv_fp ⟨g, hg⟩ m) 
          - f.1 (inv_fp ⟨f, hf⟩ m) - f.1 (-inv_fp ⟨f, hf⟩ m + inv_fp ⟨g, hg⟩ m)) : abs_add _ _
     ...< C + D : by linarith,
@@ -2413,7 +2413,7 @@ noncomputable instance : field 𝔼 :=
         intros p hp,
         simp [I],
         exact hp,
-      rw ←a at h1,
+      rw ←h at h1,
       exact E'.positive h1,
   end,
   mul_inv_cancel := 
@@ -2431,7 +2431,7 @@ noncomputable instance : field 𝔼 :=
         rw ←abs_neg,
         simp at *,
         rw add_comm,
-        ring,
+        ring_nf,
         linarith[hC x]},
         {rcases inv_mul_one.neg f h_1 with ⟨C,hC⟩,
         use C,
@@ -2448,7 +2448,6 @@ noncomputable instance : field 𝔼 :=
   end,
   inv_zero := 
   begin
-    simp [E.inv],
     apply quotient.eq.mpr,
     simp [inv],
     have h0 : (0 : S) ∈ S0 := B.zero_mem',
@@ -2504,10 +2503,12 @@ noncomputable instance : linear_ordered_field 𝔼 :=
     simp [S.mul],
     exact hN ((↑g' : G) p) (by linarith[(hM2 p hp),le_max_left N 1]),
   end,
-  zero_lt_one := 
+  zero_le_one := 
   begin
-    have h1 : ((1 : 𝔼) - 0) ∈ E'.P, simp, exact pos_one,
-    exact h1,
+    have h0 : (0: 𝔼) < 1,
+     have h1 : ((1 : 𝔼) - 0) ∈ E'.P, simp, exact pos_one,
+     exact h1,
+    exact le_of_lt h0,
   end,
     ..𝔼.linear_order,
     ..𝔼.field} 
@@ -2517,8 +2518,8 @@ begin
   use 5,
   intros p q,
   simp [df],
-  ring,
-  simp,
+  ring_nf,
+  norm_num,
 end
 
 lemma int_infinite : ∀ B C : ℤ, ∃ N, ∀ x > N, x - B > C := 
@@ -2538,6 +2539,7 @@ begin
   use 5,
   intro x,
   simp,
+  norm_num,
 end
 
 @[simp] lemma 𝔼.one_one : 𝔼.int 1 = 1 := 
@@ -2547,6 +2549,7 @@ begin
   use 5,
   intro x,
   simp [I],
+  norm_num,
 end
 
 lemma increasing_𝔼.int : ∀ B C : ℤ, B > C → 𝔼.int B > 𝔼.int C := 
@@ -2583,9 +2586,14 @@ begin
   use 11,
   intro x,
   simp,
-  ring,
+  ring_nf,
   simp,
+  norm_num,
 end
+
+@[simp] lemma epos(a: ℤ):a>0 → (↑a:  𝔼) > 0 := int.cast_pos.mpr
+
+@[simp] lemma emin (f g: S) :(↑(g - f) : 𝔼) = ↑g - ↑f:= rfl
 
 lemma archi1 : ∀ x : 𝔼, ∃ M > 0, x < 𝔼.int M := 
 begin
@@ -2596,10 +2604,10 @@ begin
   use [max (A + 1) 1, by linarith[le_max_right (A + 1) 1]],
   set Ax : ↥S := ⟨(λ x, (max (A + 1) 1) * x),int_in_S⟩ with hAx,
   use Ax - z,
-    have h1 : (↑(Ax - z) : 𝔼) = ↑Ax - ↑z := rfl, 
+    have h1 : (↑(Ax - z) : 𝔼) = ↑Ax - ↑z := by simp,
     split,
     simp [𝔼.int],
-    rw [h1, hz1],
+    rw [hz1],
     simp,
     refl,
     intros C hC,
@@ -2709,10 +2717,10 @@ begin
   exact and.intro hxy0f hxy2f,
 end
 
-instance : linear_order ℤ := linear_ordered_ring.to_linear_order ℤ
-
 noncomputable instance i (p : ℤ)(S : set 𝔼) : decidable_pred (λ (n : ℕ), ∀ (x : 𝔼), x ∈ S → ↑n > (↑p * x).floor):=
 classical.dec_pred (λ (n : ℕ), ∀ (x : 𝔼), x ∈ S → ↑n > (↑p * x).floor)
+
+lemma enonneg(a: ℤ): a ≥ 0 → (↑a: 𝔼) ≥ 0:= int.cast_nonneg.mpr
 
 lemma pos_set_max (T : set 𝔼) [nonempty T] (hT : ∃ X, ∀ x ∈ T, x < X): ∀ (p : ℤ) (hp : p ≥ 0), 
  ∃ n ≥ 0, (∀ x ∈ T, n > 𝔼.floor (p * x)) ∧ ∀ m ≥ 0, m < n → ∃ x ∈ T, m ≤ 𝔼.floor (p * x) :=
@@ -2724,7 +2732,7 @@ begin
     use n,
     intros x hx,
     specialize hX x hx,
-    have h2 : (↑p : 𝔼) ≥ 0 := int.cast_nonneg.mpr hp,
+    have h2 : (↑p : 𝔼) ≥ 0 := enonneg p hp,
     have h3 : (↑p : 𝔼) * x ≤ ↑p * X,
       by_cases hp2 : (↑p : 𝔼) > 0,
       exact le_of_lt ((mul_lt_mul_left hp2).mpr hX),
@@ -2778,8 +2786,8 @@ begin
       rw hm'm at hm, 
       specialize hn2 m' (int.lt_of_coe_nat_lt_coe_nat (neg_lt_neg_iff.mp hm)) x hx,
       by_contradiction,
-      rw hm'm at a,
-      exact hn2 (eq_neg_of_eq_neg (eq.symm a)),
+      rw hm'm at h,
+      exact hn2 (eq_neg_of_eq_neg (eq.symm h)),
 end
 
 lemma set_max (T : set 𝔼) [nonempty T] (hT : ∃ X, ∀ x ∈ T, x < X) : ∀ (p : ℤ) (hp : p ≥ 0), 
@@ -2826,8 +2834,6 @@ begin
     linarith,
 end
 
-noncomputable instance : decidable_linear_order 𝔼 := classical.DLO 𝔼
-
 lemma max_in_T {T : set 𝔼}(a b c : 𝔼)(ha : a ∈ T)(hb : b ∈ T)(hc : c ∈ T) : max a (max b c) ∈ T :=
 begin
   by_cases h1 : a > max b c,
@@ -2868,37 +2874,37 @@ begin
     have h41 : m' = (↑m * xmax).floor,
       apply le_antisymm,
       have h5 : xmax ≥ x, linarith[le_max_left x (max y z)],
-      have h6 : (↑m : 𝔼) ≥ 0 := int.cast_nonneg.mpr hm,
+      have h6 : (↑m : 𝔼) ≥ 0 :=  enonneg m hm,
       have h7 : ⌊↑m * xmax⌋ ≥ (↑m * x).floor := floor_mono(mul_le_mul_of_nonneg_left h5 h6), 
       rw ←hx at h7,
       exact h7,
       specialize h12 (↑m * xmax).floor,
       by_contradiction,
-      have := h12 (not_le.mp a), 
+      have := h12 (not_le.mp h), 
       specialize this xmax (max_in_T x y z hxT hyT hzT),
       exact this rfl,
     have h42 : n' = (↑n * xmax).floor,
       apply le_antisymm,
       have h5 : xmax ≥ y, linarith[le_max_right x (max y z),le_max_left y z],
-      have h6 : (↑n : 𝔼) ≥ 0 := int.cast_nonneg.mpr hn,
+      have h6 : (↑n : 𝔼) ≥ 0 := enonneg n hn,
       have h7 : ⌊↑n * xmax⌋ ≥ (↑n * y).floor := floor_mono(mul_le_mul_of_nonneg_left h5 h6), 
       rw ←hy at h7,
       exact h7,
       specialize h22 (↑n * xmax).floor,
       by_contradiction,
-      have := h22 (not_le.mp a), 
+      have := h22 (not_le.mp h), 
       specialize this xmax (max_in_T x y z hxT hyT hzT),
       exact this rfl,
      have h43 : mn' = (↑(m + n) * xmax).floor,
       apply le_antisymm,
       have h5 : xmax ≥ z, linarith[le_max_right x (max y z),le_max_right y z],
-      have h6 : (↑(m + n) : 𝔼) ≥ 0 := int.cast_nonneg.mpr h,
+      have h6 : (↑(m + n) : 𝔼) ≥ 0 := enonneg (m+n) h,
       have h7 : ⌊↑(m + n) * xmax⌋ ≥ (↑(m + n) * z).floor := floor_mono(mul_le_mul_of_nonneg_left h5 h6), 
       rw ←hz at h7,
       exact h7,
       specialize h32 (↑(m + n) * xmax).floor,
       by_contradiction,
-      have := h32 (not_le.mp a), 
+      have := h32 (not_le.mp h), 
       specialize this xmax (max_in_T x y z hxT hyT hzT),
       exact this rfl,
     rw [h41,h42,h43,int.cast_add,add_mul],
@@ -2971,7 +2977,7 @@ begin
       exact int_negone_negone,
       rw int.neg_succ_of_nat_coe at *,
       simp at *,
-      have h1 : -1 + -(↑m : ℤ) = -(1 + ↑m) := by {simp,rw add_comm}, 
+      have h1 : -1 + -(↑m : ℤ) = -(1 + ↑m) := by {simp,ring_nf,ring_nf}, 
       have h2 : (((-1 + -(1 + (↑m : ℤ))).cast) : 𝔼) = (-1 : ℤ).cast - (1 + (↑m : ℤ)).cast,
         have := int.cast_sub,
         unfold_coes at this,
@@ -2996,7 +3002,7 @@ begin
     simp at h,
     rcases nonempty_subtype.mp _inst_1 with ⟨x,hx⟩,
     rcases hT1 with ⟨B,hB⟩,
-    rcases h x hx B with ⟨y,hyT,hy⟩,
+    rcases h (nonempty_of_mem hx) B with ⟨y,hyT,hy⟩,
     linarith[hB y hyT],
 end
 
@@ -3014,16 +3020,15 @@ begin
   simp,
   intro x,
   rw mul_comm,
-  simp,
+  norm_num,
 end 
 
 lemma l32 (f g : S) (hfg : ∀ p > 0, f.1 p ≥ g.1 p) : (↑f : 𝔼) ≥ ↑g :=
 begin
   have h1 : ¬ (↑f : 𝔼) < ↑g,
     by_contradiction,
-      rcases a with ⟨f',hf',hf'2⟩,
-      have h2 : (↑(g - f) : 𝔼) = ↑g - ↑f := rfl,
-      rw ←h2 at hf',
+      rcases h with ⟨f',hf',hf'2⟩,
+      rw ←emin at hf',
       have h3 : ⟦g - f⟧ = ⟦f'⟧ := hf'.symm,
       rcases quotient.eq.mp h3 with ⟨B,hB⟩,
       simp only [l24, gt_iff_lt, l8, ge_iff_le, neg_sub] at *,
@@ -3037,7 +3042,7 @@ begin
       rw ←sub_nonneg at hfg,
       rw ←tactic.ring.add_neg_eq_sub at hB2,
       simp only [l24, l8, l7, l24_2] at hB2,
-      ring at hB2,
+      ring_nf at hB2,
       set l := f.1 (max (N + 1) 1) - g.1 (max (N + 1) 1) with hl,
       rw ←hl at *,
       have : f'.1(max (N + 1) 1) < B + 1 - l := lt_sub_iff_add_lt'.mpr (int.lt_add_one_iff.mpr hB2),
@@ -3048,8 +3053,7 @@ end
 lemma l33 {f g : S} (hfg : (↑f : 𝔼) < ↑g) : ∃ p > 0, f.1 p < g.1 p := 
 begin
   rcases hfg with ⟨f',hf',hf'2⟩,
-  have h2 : (↑(g - f) : 𝔼) = ↑g - ↑f := rfl,
-  rw ←h2 at hf',
+  rw ←emin at hf',
   have h3 : ⟦g - f⟧ = ⟦f'⟧ := hf'.symm,
   rcases quotient.eq.mp h3 with ⟨B,hB⟩,
   simp only [l24, gt_iff_lt, l8, ge_iff_le, neg_sub] at *,
@@ -3089,25 +3093,25 @@ begin
           by_contradiction,
           have h1 := classical.some_spec (set_max T hT2.2 (p * N) (le_of_lt (mul_pos hp hN))),
           cases h1 with h11 h12,
-          specialize h12 ((↑(p * N) : 𝔼) * y).floor a y hyT,
+          specialize h12 ((↑(p * N) : 𝔼) * y).floor h y hyT,
           exact h12 rfl,
           exfalso,
           simp at h,
           linarith[mul_pos hp hN],
       have h3 : ⌊((↑(p * N) : 𝔼) * (↑M /↑N))⌋ ≤ ⌊((↑(p * N) : 𝔼) * y)⌋,
-        have : (↑(p * N) : 𝔼) > 0 := int.cast_pos.mpr (mul_pos hp hN),
-        exact floor_mono (le_of_lt ((mul_lt_mul_left this).mpr hMN2)),
+        exact floor_mono (le_of_lt 
+             ((mul_lt_mul_left (epos (p*N) (mul_pos hp hN))).mpr hMN2)),
       simp at h3,
-      ring at h3,
+      ring_nf at h3,
       rw mul_comm (↑N)⁻¹ ↑M at h3,
       rw mul_assoc ↑M (↑N)⁻¹ ↑N at h3,
-      have hN' : (↑N : 𝔼) > 0 := int.cast_pos.mpr hN,
+      have hN' : (↑N : 𝔼) > 0 := epos N hN,
       rw inv_mul_cancel (ne_of_gt hN') at h3,
       simp at h3,
       rw ←int.cast_mul at h3,
       rw floor_coe (M * p) at h3,
       simp at h2,
-      ring at h2,
+      ring_nf at h2,
       rw [mul_comm p N,mul_comm p M],
       linarith,
     have h2 : M.cast ≤ 
@@ -3125,14 +3129,14 @@ begin
     linarith},
     exfalso,
     simp at hT2,
-    specialize hT2 x hx, 
+    specialize hT2 (nonempty_of_mem hx), 
     rcases hT with ⟨B,hB⟩,
     rw mem_upper_bounds at hB,
     rcases hT2 (B + 1) with ⟨x,hx,hxT⟩,
     linarith[hB x hx],
 end
 
-lemma cSup_le' (T : set 𝔼)[nonempty T] : ∀ a ∈ upper_bounds T, 𝔼.Sup T ≤ a := 
+lemma cSup_le'' (T : set 𝔼)[nonempty T] : ∀ a ∈ upper_bounds T, 𝔼.Sup T ≤ a := 
 begin
   intros a ha,
   simp only [𝔼.Sup],
@@ -3142,7 +3146,7 @@ begin
   {have hf : ¬a < 𝔼.Sup T,
     by_contradiction has,
     rcases archi3 a (𝔼.Sup T) has with ⟨M,N,hN,hMN1,hMN2⟩,
-    have h1 : (↑M : 𝔼) < (𝔼.Sup T) * N := (div_lt_iff (int.cast_pos.mpr hN)).mp hMN2,
+    have h1 : (↑M : 𝔼) < (𝔼.Sup T) * N := (div_lt_iff (epos N hN)).mp hMN2,
     rw l31 T hT2.2 hT3 at h1,
     rw ←(almost_homo_Sup_f T hT2.2 N hN) at h1,
     unfold_coes at h1,
@@ -3161,8 +3165,8 @@ begin
     rcases h2 with ⟨x,hxT,hx⟩,
     have h3 : ↑N * a < ↑M, 
       rw mul_comm, 
-      exact (lt_div_iff (int.cast_pos.mpr hN)).mp hMN1,
-    have hp0' : (↑p : 𝔼) > 0 := (int.cast_pos.mpr hp0),
+      exact (lt_div_iff (epos N hN)).mp hMN1,
+    have hp0' : (↑p : 𝔼) > 0 := epos p hp0,
     have hpN : (↑p : 𝔼) * ↑N > 0 := mul_pos hp0' (int.cast_pos.mpr hN),
     have h4 : ↑p * ↑N * a < ↑p * ↑M, 
       rw mul_assoc, 
@@ -3178,7 +3182,7 @@ begin
   exact not_lt.mp hf},
   { simp at hT2,
     rcases nonempty_subtype.mp _inst_1 with ⟨x,hx⟩,
-    rcases hT2 x hx (a + 1)  with ⟨x,hxT,hx⟩,
+    rcases hT2 (nonempty_of_mem hx) (a + 1)  with ⟨x,hxT,hx⟩,
     rw mem_upper_bounds at ha,
     specialize ha x hxT,
     linarith},
@@ -3210,7 +3214,7 @@ noncomputable instance : conditionally_complete_linear_order 𝔼 :=
   begin
     intros T a hT ha,
     haveI : nonempty T := nonempty.to_subtype hT,
-    exact cSup_le' T a ha,
+    exact cSup_le'' T a ha,
   end, 
   cInf_le := 
   begin
@@ -3233,7 +3237,7 @@ noncomputable instance : conditionally_complete_linear_order 𝔼 :=
     use [-x,hnnxT],  
     haveI : nonempty {x | -x ∈ T} := hnT,
     simp only [𝔼.Inf],
-    linarith[cSup_le' {x | -x ∈ T} (-a) (l34 a ha)],
+    linarith[cSup_le'' {x | -x ∈ T} (-a) (l34 a ha)],
   end,
   decidable_le := classical.dec_rel has_le.le,
   ..𝔼.linear_order,
